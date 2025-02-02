@@ -31,6 +31,7 @@ def train_student(cohort_name:str,student:Pilot,
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda:0" if use_cuda else "cpu")
     criterion = nn.MSELoss(reduction='mean')
+    scaler = torch.cuda.amp.GradScaler()
 
     # Send to GPU
     student.model.to(device)
@@ -46,7 +47,9 @@ def train_student(cohort_name:str,student:Pilot,
         return
 
     # Set parameters to optimize over
-    opt = optim.Adam(model.parameters(),lr=lr)
+    opt = optim.Adam(student.model.get_network[mode]["Unlock"].parameters(),lr=lr)
+    num_params = sum(p.numel() for group in opt.param_groups for p in group['params'])
+    print(f"Total number of parameters Adam is optimizing across all groups: {num_params}")
 
     # Some Useful Paths
     student_path = student.path
@@ -100,12 +103,14 @@ def train_student(cohort_name:str,student:Pilot,
                     input,label = tuple(tensor.to(device) for tensor in input),label.to(device)
 
                     # Forward Pass
-                    prediction,_ = model(*input)
-                    loss = criterion(prediction,label)
+                    with torch.autocast(device_type='cuda', dtype=torch.float16):
+                        prediction,_ = model(*input)
+                        loss = criterion(prediction,label)
 
                     # Backward Pass
-                    loss.backward()
-                    opt.step()
+                    scaler.scale(loss).backward()
+                    scaler.step(opt)
+                    scaler.update()
                     opt.zero_grad()
 
                     # Save loss logs
@@ -124,8 +129,9 @@ def train_student(cohort_name:str,student:Pilot,
                     input,label = tuple(tensor.to(device) for tensor in input),label.to(device)
 
                     # Forward Pass
-                    prediction,_ = model(*input)
-                    loss = criterion(prediction,label)
+                    with torch.autocast(device_type='cuda', dtype=torch.float16):
+                        prediction,_ = model(*input)
+                        loss = criterion(prediction,label)
 
                     # Save loss logs
                     log_log_tt.append((label.shape[0],loss.item()))
