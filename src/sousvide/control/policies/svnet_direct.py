@@ -172,4 +172,4 @@ class SVNetDirect(nn.Module):
         y_vis,_ = self.network["VisionMLP"](img_vis,tx_vis)
         y_com,_ = self.network["CommanderSV"](tx_com,obj_com,y_par,y_vis)
 
-        return y_com,None
+        return y_com,y_par

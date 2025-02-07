@@ -205,7 +205,8 @@ class Pilot():
         if icr is None or icr.shape != self.Img.shape:
             icr = self.process_image(icr)
         else:
-            icr = torch.from_numpy(icr).float()
+            if isinstance(icr,np.ndarray):
+                icr = torch.from_numpy(icr).float()
 
         # Update Function Variables
         self.txu_pr.copy_(torch.cat((self.tx_cr,upr)).flatten())

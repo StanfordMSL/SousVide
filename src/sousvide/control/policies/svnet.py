@@ -165,10 +165,10 @@ class SVNet(nn.Module):
         """
 
         # Parameter Network
-        _,z_par = self.network["HistoryEncoder"](dxu_par)
+        temp,z_par = self.network["HistoryEncoder"](dxu_par)
 
         # Command Network
         y_vis,_ = self.network["VisionMLP"](img_vis,tx_vis)
         y_com,_ = self.network["CommanderSV"](tx_com,obj_com,z_par,y_vis)
 
-        return y_com,None
+        return y_com,temp
